@@ -417,10 +417,11 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
 
         # Upload to storage (bucket debe existir)
         try:
-            sb_admin.storage.from_(SUPABASE_BUCKET).upload(path, data)
+            resp = sb_admin.storage.from_(SUPABASE_BUCKET).upload(path, data)
+            logger.info(f"Storage upload resp: {resp}")
         except Exception as e:
-            logger.exception("Storage upload failed")
-            raise HTTPException(500, f"Storage error: {type(e).__name__}. ¿Existe el bucket '{SUPABASE_BUCKET}'?")
+            logger.exception("Storage upload failed (detail)")
+            raise HTTPException(500, f"Storage upload error REAL: {str(e)}")
 
         # Update row with file_path
         try:
