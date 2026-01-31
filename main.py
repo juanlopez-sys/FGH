@@ -294,6 +294,25 @@ def healthz():
 @app.get("/version")
 def version():
     return {"version": APP_VERSION}
+    
+@app.get("/debug_storage")
+def debug_storage():
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/storage/v1/bucket",
+            headers={
+                "apikey": SUPABASE_SERVICE_ROLE_KEY,
+                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
+            },
+            timeout=20
+        )
+        return {
+            "status_code": r.status_code,
+            "text": r.text[:1000],
+            "using_bucket": SUPABASE_BUCKET,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # =======================
