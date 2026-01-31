@@ -35,37 +35,85 @@ LOGIN_HTML = f"""
 </head>
 <body>
   <h2>Login</h2>
-  <input id="email" placeholder="Email"><br>
-  <input id="password" type="password" placeholder="Password"><br>
-  <button onclick="login()">Entrar</button>
+  <input id="email" placeholder="Email" autocomplete="username"><br>
+  <input id="password" type="password" placeholder="Password" autocomplete="current-password"><br>
+
+  <!-- IMPORTANTE: type="button" -->
+  <button id="btn" type="button">Entrar</button>
   <pre id="msg"></pre>
 
 <script>
 const supabase = window.supabase.createClient(
   "{SUPABASE_URL}",
-  "{SUPABASE_ANON_KEY}"
-);
-
-async function login() {{
-  const email = emailEl.value;
-  const password = passwordEl.value;
-  const {{ error }} = await supabase.auth.signInWithPassword({{
-    email, password
-  }});
-  if (error) {{
-    msg.textContent = error.message;
-  }} else {{
-    window.location.href = "/app";
+  "{SUPABASE_ANON_KEY}",
+  {{
+    auth: {{
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }}
   }}
-}}
+);
 
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const msg = document.getElementById("msg");
+const btn = document.getElementById("btn");
+
+function goApp() {{
+  window.location.assign(window.location.origin + "/app");
+}}
+
+// Si ya hay sesión → entrar directo
+(async () => {{
+  const {{ data }} = await supabase.auth.getSession();
+  if (data.session) goApp();
+}})();
+
+// Redirigir cuando Supabase confirme SIGNED_IN
+supabase.auth.onAuthStateChange((event, session) => {{
+  if (event === "SIGNED_IN" && session) {{
+    goApp();
+  }}
+}});
+
+async function login() {{
+  msg.textContent = "";
+  btn.disabled = true;
+  msg.textContent = "Iniciando sesión...";
+
+  const email = emailEl.value.trim();
+  const password = passwordEl.value;
+
+  const {{ data, error }} = await supabase.auth.signInWithPassword({{ email, password }});
+
+  if (error) {{
+    msg.textContent = "Login error: " + error.message;
+    btn.disabled = false;
+    return;
+  }}
+
+  // Fallback: esperar y confirmar sesión
+  setTimeout(async () => {{
+    const {{ data }} = await supabase.auth.getSession();
+    if (data.session) {{
+      goApp();
+    }} else {{
+      msg.textContent =
+        "Se autenticó pero NO hay sesión activa.\\n" +
+        "Revisa en Supabase: Auth → Users (usuario confirmado).";
+      btn.disabled = false;
+    }}
+  }}, 400);
+}}
+
+btn.addEventListener("click", login);
+passwordEl.addEventListener("keydown", (e) => {{ if (e.key === "Enter") login(); }});
 </script>
 </body>
 </html>
 """
+
 
 APP_HTML = f"""
 <!doctype html>
@@ -76,28 +124,51 @@ APP_HTML = f"""
 </head>
 <body>
   <h2>Dashboard</h2>
-  <input type="file" id="file"><br>
-  <button onclick="upload()">Subir Excel</button>
+  <button id="logout" type="button">Salir</button><br><br>
+
+  <input type="file" id="file" accept=".xlsx,.xls"><br>
+  <button id="up" type="button">Subir Excel</button>
   <pre id="out"></pre>
 
 <script>
 const supabase = window.supabase.createClient(
   "{SUPABASE_URL}",
-  "{SUPABASE_ANON_KEY}"
+  "{SUPABASE_ANON_KEY}",
+  {{
+    auth: {{
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false
+    }}
+  }}
 );
 
-async function getSession() {{
-  const {{ data }} = await supabase.auth.getSession();
-  if (!data.session) {{
-    window.location.href = "/login";
+const out = document.getElementById("out");
+
+function goLogin() {{
+  window.location.assign(window.location.origin + "/login");
+}}
+
+// Espera corta por si la sesión tarda en persistir
+async function requireSession() {{
+  for (let i = 0; i < 6; i++) {{
+    const {{ data }} = await supabase.auth.getSession();
+    if (data.session) return data.session;
+    await new Promise(r => setTimeout(r, 250));
   }}
-  return data.session;
+  goLogin();
+  return null;
 }}
 
 async function upload() {{
-  const session = await getSession();
+  const session = await requireSession();
+  if (!session) return;
+
   const file = document.getElementById("file").files[0];
-  if (!file) return;
+  if (!file) {{
+    out.textContent = "Selecciona un Excel primero.";
+    return;
+  }}
 
   const form = new FormData();
   form.append("file", file);
@@ -113,7 +184,15 @@ async function upload() {{
   out.textContent = JSON.stringify(await res.json(), null, 2);
 }}
 
-getSession();
+async function logout() {{
+  await supabase.auth.signOut();
+  goLogin();
+}}
+
+document.getElementById("up").addEventListener("click", upload);
+document.getElementById("logout").addEventListener("click", logout);
+
+requireSession();
 </script>
 </body>
 </html>
