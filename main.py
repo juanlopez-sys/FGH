@@ -18,9 +18,9 @@ logger = logging.getLogger("FGH")
 # -----------------------
 # ENV VARS
 # -----------------------
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_URL = os.getenv("https://zacvxloxbqjwjlxufere.supabase.co")
+SUPABASE_ANON_KEY = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphY3Z4bG94YnFqd2pseHVmZXJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3MzI0NTEsImV4cCI6MjA4NTMwODQ1MX0.1B4GWAuMQBtALAp794cQxcewLaLR6hAbWKQtsR5pJfM")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InphY3Z4bG94YnFqd2pseHVmZXJlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2OTczMjQ1MSwiZXhwIjoyMDg1MzA4NDUxfQ.4ZSpnDX6EfRkWeidDtZVaNltWBqEEqfh1mkViZWwn1M")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "excels")
 
 APP_VERSION = os.getenv("APP_VERSION", datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"))
