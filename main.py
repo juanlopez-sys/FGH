@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("FGH")
 
 # -----------------------
-# ENV VARS
+# ENV VARS (Render)
 # -----------------------
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
@@ -32,13 +32,14 @@ missing = [k for k, v in {
 }.items() if not v]
 
 if missing:
-    raise RuntimeError(f"Missing env vars: {missing}. Configure them in Render → Settings → Environment.")
+    raise RuntimeError(
+        f"Missing env vars: {missing}. Configure them in Render → Environment Variables."
+    )
 
 # Admin client (service role)
 sb_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 app = FastAPI()
-
 
 # =======================
 # HTML (frontend embedded)
@@ -219,7 +220,6 @@ APP_HTML = f"""
   }}
 
   async function requireSession() {{
-    // esperar un poco por persistencia de sesión
     for (let i = 0; i < 8; i++) {{
       const {{ data }} = await sb.auth.getSession();
       if (data?.session) return data.session;
@@ -294,25 +294,17 @@ def healthz():
 @app.get("/version")
 def version():
     return {"version": APP_VERSION}
-    
-@app.get("/debug_storage")
-def debug_storage():
-    try:
-        r = requests.get(
-            f"{SUPABASE_URL}/storage/v1/bucket",
-            headers={
-                "apikey": SUPABASE_SERVICE_ROLE_KEY,
-                "Authorization": f"Bearer {SUPABASE_SERVICE_ROLE_KEY}",
-            },
-            timeout=20
-        )
-        return {
-            "status_code": r.status_code,
-            "text": r.text[:1000],
-            "using_bucket": SUPABASE_BUCKET,
-        }
-    except Exception as e:
-        return {"error": str(e)}
+
+# Debug: confirmar env vars (no muestra secretos)
+@app.get("/env_check")
+def env_check():
+    return {
+        "SUPABASE_URL": bool(SUPABASE_URL),
+        "SUPABASE_ANON_KEY": bool(SUPABASE_ANON_KEY),
+        "SUPABASE_SERVICE_ROLE_KEY": bool(SUPABASE_SERVICE_ROLE_KEY),
+        "SUPABASE_BUCKET": SUPABASE_BUCKET,
+        "APP_VERSION": APP_VERSION,
+    }
 
 
 # =======================
@@ -329,9 +321,9 @@ def get_user_from_token(token: str):
             },
             timeout=15
         )
-    except Exception as e:
+    except Exception:
         logger.exception("Auth request failed")
-        raise HTTPException(500, f"Auth request failed: {type(e).__name__}")
+        raise HTTPException(500, "Auth request failed (network/timeout)")
 
     if r.status_code != 200:
         raise HTTPException(401, f"Invalid session ({r.status_code}): {r.text[:200]}")
@@ -346,7 +338,7 @@ def validate_excel(df: pd.DataFrame):
             f"Invalid Excel format. Necesito {sorted(required)}. Recibí {list(df.columns)}"
         )
 
-    # Date to datetime (tolerante)
+    # Date → datetime
     try:
         df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
     except Exception:
@@ -355,14 +347,13 @@ def validate_excel(df: pd.DataFrame):
     if df["Date"].isna().all():
         raise HTTPException(400, "La columna Date no contiene fechas válidas.")
 
-    # Numeric columns
+    # Numerics
     for c in ["Open", "High", "Low", "Close", "Volume"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
 
     if df[["Open", "High", "Low", "Close"]].isna().any().any():
         raise HTTPException(400, "Hay valores no numéricos o vacíos en Open/High/Low/Close.")
 
-    # Basic sanity
     if (df["High"] < df["Low"]).any():
         raise HTTPException(400, "Hay filas donde High < Low (datos inconsistentes).")
 
@@ -376,7 +367,7 @@ def validate_excel(df: pd.DataFrame):
 @app.post("/api/upload")
 async def upload_excel(file: UploadFile = File(...), authorization: str = Header(None)):
     try:
-        # Auth
+        # Auth header
         if not authorization or not authorization.lower().startswith("bearer "):
             raise HTTPException(401, "Missing Authorization: Bearer <token>")
 
@@ -384,7 +375,7 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
         user = get_user_from_token(token)
         user_id = user["id"]
 
-        # Read file bytes
+        # Read bytes
         data = await file.read()
         if not data or len(data) < 50:
             raise HTTPException(400, "Archivo vacío o inválido")
@@ -394,7 +385,11 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
             df = pd.read_excel(BytesIO(data))
         except Exception as e:
             logger.exception("Error leyendo Excel")
-            raise HTTPException(400, f"No pude leer el Excel: {type(e).__name__}. ¿Incluiste openpyxl en requirements?")
+            raise HTTPException(
+                400,
+                f"No pude leer el Excel: {type(e).__name__}. "
+                f"¿Incluiste 'openpyxl' en requirements.txt?"
+            )
 
         df = validate_excel(df)
 
@@ -407,7 +402,11 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
             }).execute()
         except Exception as e:
             logger.exception("DB insert user_uploads failed")
-            raise HTTPException(500, f"DB error insert user_uploads: {type(e).__name__}. ¿Existe la tabla user_uploads?")
+            raise HTTPException(
+                500,
+                f"DB error insert user_uploads: {type(e).__name__}. "
+                f"¿Existe la tabla user_uploads?"
+            )
 
         if not rec.data or "id" not in rec.data[0]:
             raise HTTPException(500, f"user_uploads insert no devolvió id: {rec.data}")
@@ -415,21 +414,22 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
         upload_id = rec.data[0]["id"]
         path = f"{user_id}/{upload_id}.xlsx"
 
+        # Determine content-type
+        content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        if (file.filename or "").lower().endswith(".xls"):
+            content_type = "application/vnd.ms-excel"
+
         # Upload to storage (bucket debe existir)
         try:
-            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            if (file.filename or "").lower().endswith(".xls"):
-                content_type = "application/vnd.ms-excel"
-                
+            # upsert MUST be string "true" to avoid header bool error
             resp = sb_admin.storage.from_(SUPABASE_BUCKET).upload(
                 path,
                 data,
                 file_options={
                     "contentType": content_type,
-                    "upsert": True
+                    "upsert": "true"
                 }
             )
-
             logger.info(f"Storage upload resp: {resp}")
         except Exception as e:
             logger.exception("Storage upload failed (detail)")
@@ -442,16 +442,16 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
             logger.exception("DB update user_uploads failed")
             raise HTTPException(500, f"DB update error: {type(e).__name__}")
 
-        # Return OK with details
+        # Return OK
         return JSONResponse({
             "ok": True,
             "rows": int(len(df)),
             "path": path,
+            "contentType": content_type,
             "note": "Archivo subido y validado correctamente."
         })
 
     except HTTPException as he:
-        # Mensaje claro al frontend
         raise he
     except Exception as e:
         logger.exception("Unexpected /api/upload error")
