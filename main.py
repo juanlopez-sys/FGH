@@ -417,7 +417,19 @@ async def upload_excel(file: UploadFile = File(...), authorization: str = Header
 
         # Upload to storage (bucket debe existir)
         try:
-            resp = sb_admin.storage.from_(SUPABASE_BUCKET).upload(path, data)
+            content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            if (file.filename or "").lower().endswith(".xls"):
+                content_type = "application/vnd.ms-excel"
+                
+            resp = sb_admin.storage.from_(SUPABASE_BUCKET).upload(
+                path,
+                data,
+                file_options={
+                    "contentType": content_type,
+                    "upsert": True
+                }
+            )
+
             logger.info(f"Storage upload resp: {resp}")
         except Exception as e:
             logger.exception("Storage upload failed (detail)")
