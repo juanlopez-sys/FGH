@@ -63,25 +63,110 @@ LOGIN_HTML = f"""
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <style>
-    body {{ font-family: Arial, sans-serif; margin: 24px; max-width: 980px; }}
-    .card {{ border: 1px solid #eee; padding: 16px; border-radius: 12px; margin-bottom: 16px; }}
-    input {{ padding: 10px; width: 360px; margin: 6px 0; }}
-    button {{ padding: 10px 14px; margin-top: 8px; cursor: pointer; }}
-    pre {{ background:#f6f6f6; padding:12px; border-radius:8px; white-space: pre-wrap; }}
-    .row {{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }}
-    .muted {{ color:#555; }}
+    :root {{
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1b2338;
+      --muted: #5c6b82;
+      --primary: #4f46e5;
+      --primary-2: #7c3aed;
+      --border: rgba(15, 23, 42, 0.08);
+      --shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: radial-gradient(circle at top, #eef2ff 0%, var(--bg) 45%, #eef6ff 100%);
+      color: var(--text);
+    }}
+    .page {{
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }}
+    .card {{
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+      max-width: 520px;
+      width: 100%;
+    }}
+    h2 {{ margin: 0 0 12px; font-size: 26px; }}
+    .subtitle {{ color: var(--muted); margin-bottom: 24px; }}
+    input {{
+      padding: 12px 14px;
+      width: 100%;
+      margin: 6px 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 14px;
+    }}
+    input:focus {{
+      outline: none;
+      border-color: rgba(79, 70, 229, 0.5);
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+    }}
+    button {{
+      padding: 12px 18px;
+      margin-top: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(120deg, var(--primary), var(--primary-2));
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      box-shadow: 0 12px 24px rgba(79, 70, 229, 0.2);
+    }}
+    button:disabled {{
+      opacity: 0.7;
+      cursor: not-allowed;
+    }}
+    pre {{
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 12px;
+      white-space: pre-wrap;
+      font-size: 13px;
+      margin-top: 16px;
+    }}
+    .row {{ display: grid; gap: 12px; }}
+    .muted {{ color: var(--muted); font-size: 13px; line-height: 1.5; }}
+    .brand {{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(79, 70, 229, 0.1);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }}
   </style>
 </head>
 <body>
-  <h2>FGH — Login</h2>
-  <div class="card">
-    <div class="row">
-      <input id="email" placeholder="Email" autocomplete="username">
-      <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+  <div class="page">
+    <div class="card">
+      <div class="brand">FGH • Stock Analyzer</div>
+      <h2>Inicia sesión</h2>
+      <div class="subtitle">Accede al panel para analizar tus archivos de mercado.</div>
+      <div class="row">
+        <input id="email" placeholder="Email" autocomplete="username">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+      </div>
+      <button id="btn" type="button">Entrar</button>
+      <div class="muted" style="margin-top:8px;">Si el login responde OK pero no entra, revisa si el email está confirmado en Supabase Auth.</div>
+      <pre id="msg"></pre>
     </div>
-    <button id="btn" type="button">Entrar</button>
-    <div class="muted" style="margin-top:8px;">Si el login responde OK pero no entra, revisa si el email está confirmado en Supabase Auth.</div>
-    <pre id="msg"></pre>
   </div>
 
 <script>
@@ -188,96 +273,186 @@ APP_HTML = f"""
   <script src="https://cdn.plot.ly/plotly-2.30.0.min.js"></script>
 
   <style>
-    body {{ font-family: Arial, sans-serif; margin: 24px; max-width: 1200px; }}
-    .topbar {{ display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; }}
-    .card {{ border: 1px solid #eee; padding: 16px; border-radius: 12px; margin: 12px 0; }}
-    button {{ padding: 10px 14px; cursor:pointer; }}
-    pre {{ background:#f6f6f6; padding:12px; border-radius:8px; white-space: pre-wrap; overflow:auto; }}
-    .grid {{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }}
-    .muted {{ color:#555; }}
-    .ok {{ color: #0a7; }}
-    .bad {{ color: #c33; }}
+    :root {{
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1b2338;
+      --muted: #5c6b82;
+      --primary: #4f46e5;
+      --primary-2: #7c3aed;
+      --border: rgba(15, 23, 42, 0.08);
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    }}
+    * {{ box-sizing: border-box; }}
+    body {{
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: radial-gradient(circle at top, #eef2ff 0%, var(--bg) 45%, #eef6ff 100%);
+      color: var(--text);
+    }}
+    .page {{ max-width: 1200px; margin: 32px auto 60px; padding: 0 20px; }}
+    .topbar {{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 20px;
+      z-index: 5;
+      backdrop-filter: blur(6px);
+    }}
+    .topbar h2 {{ margin:0; font-size: 22px; }}
+    .card {{
+      border: 1px solid var(--border);
+      padding: 18px;
+      border-radius: 18px;
+      margin: 14px 0;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }}
+    button {{
+      padding: 10px 16px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(120deg, var(--primary), var(--primary-2));
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 12px 24px rgba(79, 70, 229, 0.2);
+    }}
+    button.secondary {{
+      background: #0f172a;
+      box-shadow: none;
+    }}
+    button.ghost {{
+      background: #eef2ff;
+      color: var(--primary);
+      box-shadow: none;
+    }}
+    input[type="file"] {{
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px dashed rgba(79, 70, 229, 0.35);
+      background: #f8fafc;
+      color: var(--muted);
+    }}
+    pre {{
+      background:#0f172a;
+      color: #e2e8f0;
+      padding:12px;
+      border-radius:12px;
+      white-space: pre-wrap;
+      overflow:auto;
+      font-size: 13px;
+    }}
+    .grid {{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }}
+    .muted {{ color: var(--muted); }}
+    .ok {{ color: #16a34a; font-weight: 600; }}
+    .bad {{ color: #dc2626; font-weight: 600; }}
+    .hero {{
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(14, 165, 233, 0.12));
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin: 18px 0 12px;
+      border: 1px solid rgba(79, 70, 229, 0.18);
+    }}
+    .hero strong {{ color: var(--primary); }}
     @media (max-width: 900px) {{
       .grid {{ grid-template-columns: 1fr; }}
+      .topbar {{ position: static; }}
     }}
     .plot {{ width: 100%; height: 420px; }}
     .plotTall {{ width: 100%; height: 520px; }}
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <h2 style="margin:0;">FGH — Dashboard</h2>
-    <div>
-      <button id="logout" type="button">Salir</button>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <div class="muted" style="font-size:13px; letter-spacing:0.12em;">FGH • STOCK ANALYZER</div>
+        <h2>Dashboard</h2>
+      </div>
+      <div>
+        <button id="logout" type="button" class="secondary">Salir</button>
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="muted">
-      Sube un Excel con columnas: <b>Date, Open, High, Low, Close, Volume</b><br/>
-      (Date puede venir como fecha o texto; el sistema intenta convertirlo)
-    </div>
-    <div style="margin-top:10px;">
-      <input type="file" id="file" accept=".xlsx,.xls">
-      <button id="up" type="button">Subir y analizar</button>
-      <button id="loadLast" type="button">Cargar último Excel guardado</button>
-    </div>
-    <pre id="out">Listo.</pre>
-  </div>
-
-  <div class="grid">
-    <div class="card">
-      <h3 style="margin-top:0;">Resumen / Estadísticas</h3>
-      <pre id="stats">Aún no hay análisis.</pre>
+    <div class="hero">
+      <div class="muted">
+        Sube un Excel con columnas: <strong>Date, Open, High, Low, Close, Volume</strong><br/>
+        (Date puede venir como fecha o texto; el sistema intenta convertirlo)
+      </div>
     </div>
 
     <div class="card">
-      <h3 style="margin-top:0;">Estado</h3>
-      <div id="status" class="muted">Esperando archivo…</div>
-      <div class="muted" style="margin-top:8px;">Versión app: <span id="ver">?</span></div>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <input type="file" id="file" accept=".xlsx,.xls">
+        <button id="up" type="button">Subir y analizar</button>
+        <button id="loadLast" type="button" class="ghost">Cargar último Excel guardado</button>
+      </div>
+      <pre id="out">Listo.</pre>
     </div>
-  </div>
 
-  <div class="card">
-    <h3 style="margin-top:0;">Velas + Bandas de Bollinger + SMA/EMA</h3>
-    <div id="plot_candles" class="plotTall"></div>
-  </div>
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">Resumen / Estadísticas</h3>
+        <pre id="stats">Aún no hay análisis.</pre>
+      </div>
 
-  <div class="card">
-    <h3 style="margin-top:0;">Volumen</h3>
-    <div id="plot_volume" class="plot"></div>
-  </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Estado</h3>
+        <div id="status" class="muted">Esperando archivo…</div>
+        <div class="muted" style="margin-top:8px;">Versión app: <span id="ver">?</span></div>
+      </div>
+    </div>
 
-  <div class="grid">
     <div class="card">
-      <h3 style="margin-top:0;">RSI</h3>
-      <div id="plot_rsi" class="plot"></div>
+      <h3 style="margin-top:0;">Velas + Bandas de Bollinger + SMA/EMA</h3>
+      <div id="plot_candles" class="plotTall"></div>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0;">MACD</h3>
-      <div id="plot_macd" class="plot"></div>
-    </div>
-  </div>
 
-  <div class="grid">
     <div class="card">
-      <h3 style="margin-top:0;">Retorno acumulado</h3>
-      <div id="plot_cumret" class="plot"></div>
+      <h3 style="margin-top:0;">Volumen</h3>
+      <div id="plot_volume" class="plot"></div>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0;">Drawdown</h3>
-      <div id="plot_dd" class="plot"></div>
-    </div>
-  </div>
 
-  <div class="grid">
-    <div class="card">
-      <h3 style="margin-top:0;">Histograma de retornos diarios</h3>
-      <div id="plot_hist" class="plot"></div>
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">RSI</h3>
+        <div id="plot_rsi" class="plot"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">MACD</h3>
+        <div id="plot_macd" class="plot"></div>
+      </div>
     </div>
-    <div class="card">
-      <h3 style="margin-top:0;">Volatilidad (rolling)</h3>
-      <div id="plot_vol" class="plot"></div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">Retorno acumulado</h3>
+        <div id="plot_cumret" class="plot"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Drawdown</h3>
+        <div id="plot_dd" class="plot"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3 style="margin-top:0;">Histograma de retornos diarios</h3>
+        <div id="plot_hist" class="plot"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Volatilidad (rolling)</h3>
+        <div id="plot_vol" class="plot"></div>
+      </div>
     </div>
   </div>
 
@@ -286,6 +461,21 @@ APP_HTML = f"""
   const statsEl = document.getElementById("stats");
   const statusEl = document.getElementById("status");
   const verEl = document.getElementById("ver");
+  const plotTheme = {
+    paper_bgcolor: "rgba(0,0,0,0)",
+    plot_bgcolor: "#ffffff",
+    font: { family: "Inter, Segoe UI, system-ui, sans-serif", color: "#1b2338" },
+    xaxis: { gridcolor: "rgba(148, 163, 184, 0.25)", zerolinecolor: "rgba(148, 163, 184, 0.3)" },
+    yaxis: { gridcolor: "rgba(148, 163, 184, 0.25)", zerolinecolor: "rgba(148, 163, 184, 0.3)" }
+  };
+  function themedLayout(opts) {
+    return {
+      ...plotTheme,
+      ...opts,
+      xaxis: { ...plotTheme.xaxis, ...(opts && opts.xaxis) },
+      yaxis: { ...plotTheme.yaxis, ...(opts && opts.yaxis) }
+    };
+  }
 
   function logBox(t) {{
     out.textContent = t;
@@ -377,23 +567,23 @@ APP_HTML = f"""
       x: d, y: s.bb_lower, type: "scatter", mode: "lines", name: "BB Lower"
     }};
 
-    Plotly.newPlot("plot_candles", [candle, sma20, ema20, bbU, bbM, bbL], {{
+    Plotly.newPlot("plot_candles", [candle, sma20, ema20, bbU, bbM, bbL], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "Precio" }},
       showlegend: true
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- Volume
     const vol = {{
       x: d, y: s.volume, type: "bar", name: "Volumen"
     }};
-    Plotly.newPlot("plot_volume", [vol], {{
+    Plotly.newPlot("plot_volume", [vol], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "Volumen" }},
       showlegend: false
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- RSI
     const rsi = {{
@@ -401,59 +591,59 @@ APP_HTML = f"""
     }};
     const rsiOver = {{ x: [d[0], d[d.length-1]], y: [70,70], type:"scatter", mode:"lines", name:"70" }};
     const rsiUnder= {{ x: [d[0], d[d.length-1]], y: [30,30], type:"scatter", mode:"lines", name:"30" }};
-    Plotly.newPlot("plot_rsi", [rsi, rsiOver, rsiUnder], {{
+    Plotly.newPlot("plot_rsi", [rsi, rsiOver, rsiUnder], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "RSI" }},
       showlegend: true
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- MACD
     const macd = {{ x: d, y: s.macd, type:"scatter", mode:"lines", name:"MACD" }};
     const signal = {{ x: d, y: s.macd_signal, type:"scatter", mode:"lines", name:"Signal" }};
     const hist = {{ x: d, y: s.macd_hist, type:"bar", name:"Hist" }};
-    Plotly.newPlot("plot_macd", [hist, macd, signal], {{
+    Plotly.newPlot("plot_macd", [hist, macd, signal], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "MACD" }},
       showlegend: true
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- Cum return
     const cum = {{ x: d, y: s.cum_return, type:"scatter", mode:"lines", name:"Retorno acumulado" }};
-    Plotly.newPlot("plot_cumret", [cum], {{
+    Plotly.newPlot("plot_cumret", [cum], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "Acumulado (base 1.0)" }},
       showlegend: false
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- Drawdown
     const dd = {{ x: d, y: s.drawdown, type:"scatter", mode:"lines", name:"Drawdown" }};
-    Plotly.newPlot("plot_dd", [dd], {{
+    Plotly.newPlot("plot_dd", [dd], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "Drawdown" }},
       showlegend: false
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- Histogram returns
     const histret = {{ x: s.returns.filter(x => x != null), type:"histogram", name:"Retornos" }};
-    Plotly.newPlot("plot_hist", [histret], {{
+    Plotly.newPlot("plot_hist", [histret], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Retorno diario" }},
       yaxis: {{ title: "Frecuencia" }},
       showlegend: false
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // -------- Vol rolling
     const volv = {{ x: d, y: s.volatility, type:"scatter", mode:"lines", name:"Vol(20)" }};
-    Plotly.newPlot("plot_vol", [volv], {{
+    Plotly.newPlot("plot_vol", [volv], themedLayout({{
       margin: {{ t: 30, r: 10, l: 50, b: 40 }},
       xaxis: {{ title: "Fecha" }},
       yaxis: {{ title: "Volatilidad rolling" }},
       showlegend: false
-    }}, {{ responsive: true }});
+    }}), {{ responsive: true }});
 
     // Stats text
     statsEl.textContent = prettyStats(payload.summary);
